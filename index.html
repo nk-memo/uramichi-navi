@@ -5,11 +5,9 @@
   <title>【完成版】裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- Leaflet本体 -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- ★★★ 地名検索機能の部品を追加 ★★★ -->
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
@@ -27,10 +25,9 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
       pointer-events: none;
     }
-    /* ★★★ ボタンのスタイルを右上に変更 ★★★ */
     #locate-btn {
       position: absolute;
-      top: 10px; /* 地図の操作ボタンと重ならないように調整 */
+      top: 10px;
       right: 10px;
       z-index: 1000;
       padding: 8px 12px;
@@ -49,14 +46,10 @@
 
 <div id="map"></div>
 <div id="instructions">出発地点をクリックしてください</div>
-
-<!-- ★★★ ボタンの文言を変更 ★★★ -->
 <button id="locate-btn">現在地を出発地点にする</button>
 
 <script>
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【地図レイヤーの定義】標準と航空写真の2種類を用意します ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // 【地図レイヤーの定義】
   const std = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   });
@@ -65,32 +58,33 @@
   });
 
   const map = L.map('map', {
-    layers: [std] // デフォルトで標準地図を表示
+    layers: [std]
   }).setView([35.387, 139.589], 14);
 
   const baseLayers = {
     "標準地図": std,
     "航空写真": satellite
   };
-  L.control.layers(baseLayers).addTo(map);
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【地名検索機能の追加】 ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【修正点①】地図切り替えコントロールを「左下(bottomleft)」に配置 ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  L.control.layers(baseLayers, null, { position: 'bottomleft' }).addTo(map);
+
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【修正点②】地名検索コントロールを「左下(bottomleft)」に配置 ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   L.Control.geocoder({
-    defaultMarkGeocode: false, // 検索結果に自動でマーカーを立てない
+    position: 'bottomleft', // ★ ここを追加
+    defaultMarkGeocode: false,
     placeholder: '地名を検索...'
   }).on('markgeocode', function(e) {
-    map.fitBounds(e.geocode.bbox); // 検索した場所に地図を移動
+    map.fitBounds(e.geocode.bbox);
   }).addTo(map);
 
   const instructions = document.getElementById('instructions');
   let startLatLng = null;
   let startMarker, endMarker, routeLine;
-
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【現在地ボタンの機能変更】押したら出発点として設定する ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   const locateBtn = document.getElementById('locate-btn');
 
   locateBtn.addEventListener('click', function() {
@@ -100,10 +94,9 @@
         const lng = position.coords.longitude;
         const userLatLng = L.latLng(lat, lng);
 
-        resetRoute(); // まず全てをリセット
-        map.setView(userLatLng, 16); // 現在地に移動
+        resetRoute();
+        map.setView(userLatLng, 16);
         
-        // 現在地を出発点として設定
         startLatLng = userLatLng;
         startMarker = L.marker(startLatLng).addTo(map);
         instructions.textContent = "到着地点をクリックしてください";
