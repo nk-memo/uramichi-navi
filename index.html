@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>【完成版】裏道サイクリングナビ</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -51,23 +51,43 @@
       background-color: #0056b3;
     }
     
-    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-    /* ★ 【UI修正】地名検索のアイコンとフォームの見た目を調整します ★ */
-    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    /* ★ 【UI修正】地名検索フォームのデザインを、ご指定の通りに変更します ★ */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    .leaflet-control-geocoder {
+        /* 全体の枠線を消してスッキリさせる */
+        border: none;
+        box-shadow: none;
+    }
     .leaflet-control-geocoder-form {
-      display: flex !important; /* 横並びにする */
-      align-items: center; /* 垂直方向の中央揃え */
+      display: flex !important;
+      border: 1px solid #ccc; /* フォームとボタンを囲む枠線 */
+      border-radius: 4px;
+      overflow: hidden; /* 角丸を効かせるため */
+      box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+    }
+    .leaflet-control-geocoder-form input {
+        /* 入力欄の枠線を消す */
+        border: none;
+        width: 150px; /* 横幅を調整 */
     }
     .leaflet-control-geocoder-icon {
-      /* アイコンを復活させ、ボタンのように見せる */
-      display: block !important;
-      border-left: 1px solid #ccc;
+      /* アイコンを「検索」ボタンに置き換えるためのスタイル */
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      background-color: #28a745; /* ★ 緑色に変更 ★ */
+      color: white;
+      font-weight: bold;
       cursor: pointer;
-      padding: 5px;
-      background-color: #f4f4f4;
+      padding: 0 12px;
     }
-    .leaflet-control-geocoder-icon:hover {
-      background-color: #e4e4e4;
+     .leaflet-control-geocoder-icon:hover {
+      background-color: #218838; /* ホバー時にもう少し濃い緑に */
+    }
+    /* デフォルトの虫眼鏡アイコンは非表示にする */
+    .leaflet-control-geocoder-icon::after {
+        display: none;
     }
   </style>
 </head>
@@ -107,27 +127,22 @@
   // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   const geocoder = L.Control.geocoder({
     position: 'bottomleft',
-    defaultMarkGeocode: false, // 結果にマーカーは立てない
+    defaultMarkGeocode: false,
     placeholder: '地名を検索...',
-    collapsed: false, // 常に開いておく
-    showResultIcons: false // 検索結果リストのアイコンは不要
+    collapsed: false,
+    showResultIcons: false,
+    // ★【解決策②】アイコンを「検索」という文字に置き換える
+    iconLabel: '検索' 
   }).on('markgeocode', function(e) {
-    // ★【解決策①】ズームしすぎないように、地図の移動方法を変更
-    // BBox全体にfitさせるのではなく、中心点に、ズームレベル15で移動する
-    map.setView(e.geocode.center, 15);
+    // ★【解決策①】ズームしすぎないように、地図の移動方法をさらに改善
+    // 検索結果のバウンディングボックスにフィットさせた後、1段階ズームアウトする
+    map.fitBounds(e.geocode.bbox);
+    setTimeout(function() {
+        if (map.getZoom() > 15) {
+            map.setZoom(15); // 最大ズームレベルを15に制限
+        }
+    }, 200); // わずかに遅延させて実行
   }).addTo(map);
-
-  // ★【解決策②】フォームの右のアイコンをクリックでも検索を実行させる
-  // geocoderコントロールの内部要素にアクセスしてイベントを設定
-  const geocoderContainer = geocoder.getContainer();
-  const searchIcon = geocoderContainer.querySelector('.leaflet-control-geocoder-icon');
-  const searchInput = geocoderContainer.querySelector('input[type="text"]');
-  if (searchIcon && searchInput) {
-    searchIcon.addEventListener('click', function() {
-      // 入力されたテキストで、強制的にジオコーディングを実行
-      geocoder.geocode(searchInput.value);
-    });
-  }
 
   const instructions = document.getElementById('instructions');
   let startLatLng = null;
