@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>【安全版】裏道サイクリングナビ</title>
+  <title>裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -50,12 +50,13 @@
       if(endMarker) map.removeLayer(endMarker);
       endMarker = L.marker(e.latlng).addTo(map);
       instructions.innerText = '究極の裏道を検索中…';
-      drawRoute(start, e.latlng);
+      fetchRoute(start, e.latlng);
     }
   });
 
+
   function fetchRoute(s, e) {
-    const url = '/api/route'; // ★自分の中継サーバーを呼び出す
+    const url = '/api/route';
     if(control) map.removeControl(control);
     fetch(url, {
       method: 'POST',
@@ -72,17 +73,26 @@
     })
     .then(data => {
       if (!data.features || data.features.length === 0) throw new Error('ルートが見つかりません');
+      
       const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+
+      // Leaflet Routing Machineの描画機能を、ルートデータだけを受け取って表示するように使います
       control = L.Routing.control({
-        waypoints: [s, e],
+        waypoints: [ L.latLng(s.lat, s.lng), L.latLng(e.lat, e.lng) ],
         routeWhileDragging: false,
         addWaypoints: false,
-        router: L.Routing.osrmv1({serviceUrl:''}), // ダミーのルーター
-        lineOptions: { styles: [{ color: 'deeppink', weight: 5 }] }
+        createMarker: function() { return null; }, // マーカーは自分で管理するので不要
+        router: new L.Routing.OSRMv1({serviceUrl:''}), // ルーティングはしないのでダミー
+        lineOptions: { styles: [{ color: 'deeppink', weight: 5, opacity: 0.8 }] }
       }).addTo(map);
-      control.setWaypoints([]); // マーカーを消す
-      L.polyline(coords, { color: 'deeppink', weight: 5 }).addTo(control);
-      map.fitBounds(coords);
+
+      // 計算済みのルートをセットして描画
+      control.getPlan().setWaypoints([]); // デフォルトのマーカーを消す
+      control.hide(); // ルート案内パネルを隠す
+      L.polyline(coords, { color: 'deeppink', weight: 5, opacity: 0.8 }).addTo(control);
+
+      map.fitBounds(L.polyline(coords).getBounds());
+      
       if(startMarker) map.removeLayer(startMarker);
       if(endMarker) map.removeLayer(endMarker);
       instructions.innerText = '裏道ルート表示完了！ 再クリックでリセット';
