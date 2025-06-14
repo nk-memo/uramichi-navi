@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>裏道サイクリングナビ</title>
+  <title>【完成版】裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -20,6 +20,23 @@
       border-radius: 5px;
       z-index: 1000;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      pointer-events: none; /* メッセージ自体はクリックできないようにする */
+    }
+    /* ★ ボタンのスタイルを追加 ★ */
+    #locate-btn {
+      position: absolute;
+      top: 50px;
+      left: 10px;
+      z-index: 1000;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background-color: white;
+    }
+    #locate-btn:hover {
+      background-color: #f4f4f4;
     }
   </style>
 </head>
@@ -28,15 +45,59 @@
 <div id="map"></div>
 <div id="instructions">出発地点をクリックしてください</div>
 
+<!-- ★★★★★★★★★★★★★★★★★★★★★★★ -->
+<!-- ★ このボタンを追加しました ★ -->
+<!-- ★★★★★★★★★★★★★★★★★★★★★★★ -->
+<button id="locate-btn">現在地</button>
+
 <script>
   const map = L.map('map').setView([35.387, 139.589], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 
-  let startMarker, endMarker, routeLine;
-  let startLatLng = null;
   const instructions = document.getElementById('instructions');
+  let startLatLng = null;
+  let startMarker, endMarker, routeLine;
+
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ ここから、現在地取得機能のコードを追加しました ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+  const locateBtn = document.getElementById('locate-btn');
+  let userMarker = null; // 現在地を示すマーカーを保存する変数
+
+  locateBtn.addEventListener('click', function() {
+    // ユーザーに位置情報の許可を求めます
+    navigator.geolocation.getCurrentPosition(
+      // 取得に成功した場合の処理
+      function(position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const userLatLng = L.latLng(lat, lng);
+        
+        // 地図を現在地に移動し、ズームする
+        map.setView(userLatLng, 16);
+
+        // すでに現在地マーカーがあれば削除してから、新しいマーカーを置く
+        if (userMarker) {
+          map.removeLayer(userMarker);
+        }
+        userMarker = L.marker(userLatLng).addTo(map)
+          .bindPopup('現在地').openPopup();
+      },
+      // 取得に失敗した場合の処理
+      function(error) {
+        alert('位置情報の取得に失敗しました。ブラウザやOSの設定で位置情報サービスが許可されているか確認してください。');
+        console.error(error);
+      }
+    );
+  });
+  
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 現在地取得機能のコードはここまでです ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
 
   function resetRoute() {
     if (startMarker) map.removeLayer(startMarker);
@@ -48,7 +109,6 @@
   }
 
   map.on('click', function(e) {
-
     if (routeLine) {
       resetRoute();
       return; 
@@ -68,8 +128,6 @@
 
   function fetchRoute(start, end) {
     const url = '/api/route';
-
-    // この関数の先頭にあった古いルート削除処理は不要になったので削除
 
     fetch(url, {
       method: 'POST',
@@ -111,11 +169,6 @@
       setTimeout(resetRoute, 3000); 
     });
   }
-
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ ダブルクリックでのリセットは不要になったので削除 ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // map.on('dblclick', resetRoute);
 </script>
 
 </body>
