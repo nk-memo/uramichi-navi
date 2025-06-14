@@ -235,7 +235,7 @@
       map.fitBounds(routeLine.getBounds());
       if(startMarker) map.removeLayer(startMarker);
       if(endMarker) map.removeLayer(endMarker);
-      instructions.textContent = "地図を再クリックでリセット。";
+      instructions.textContent = "地図タッチでリセット";
     })
     .catch(err => {
       console.error(err);
