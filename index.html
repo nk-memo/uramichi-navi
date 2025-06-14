@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>OpenRouteService 裏道サイクリングナビ（最終完成版）</title>
+  <title>【最終完成版】裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -29,10 +29,10 @@
 <div id="instructions">出発地点をクリックしてください</div>
 
 <script>
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 重要：このAPIキーは公開されてしまいました。念のため、後で新しいキーに差し替えることをお勧めします ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  const orsApiKey = '5b3ce3597851110001cf624899c1590637ea47de9b4d929e9437ccd5';
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 1. APIキーをここから完全に削除します！ ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // const orsApiKey = '...'; // ← この行を削除
 
   const map = L.map('map').setView([35.387, 139.589], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -47,22 +47,19 @@
     if (startMarker) map.removeLayer(startMarker);
     if (endMarker) map.removeLayer(endMarker);
     if (routeLine) map.removeLayer(routeLine);
-    startLatLng = null;
-    startMarker = null;
-    endMarker = null;
-    routeLine = null;
+    startLatLng = startMarker = endMarker = routeLine = null;
     instructions.textContent = "出発地点をクリックしてください";
     instructions.style.color = 'black';
   }
 
   map.on('click', function(e) {
     if (!startLatLng) {
-      resetRoute(); // 新しいルート検索の前にリセット
+      resetRoute();
       startLatLng = e.latlng;
       startMarker = L.marker(startLatLng).addTo(map);
       instructions.textContent = "到着地点をクリックしてください";
     } else {
-      if (endMarker) map.removeLayer(endMarker); // 到着マーカーを更新
+      if (endMarker) map.removeLayer(endMarker);
       endMarker = L.marker(e.latlng).addTo(map);
       instructions.textContent = "究極の裏道を検索中...";
       fetchRoute(startLatLng, e.latlng);
@@ -70,9 +67,11 @@
   });
 
   function fetchRoute(start, end) {
-    const url = 'https://api.openrouteservice.org/v2/directions/cycling-regular/geojson';
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // ★ 2. 問い合わせ先を、OpenRouteServiceから、あなたの中継サーバーに変更 ★
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    const url = '/api/route';
 
-    // 古いルートがあれば削除
     if (routeLine) {
       map.removeLayer(routeLine);
     }
@@ -80,22 +79,18 @@
     fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': orsApiKey,
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+        // ★ 3. APIキーのヘッダーは、もうブラウザからは不要です ★
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
         'Content-Type': 'application/json'
       },
+      // 送信する情報は変わりません
       body: JSON.stringify({
         coordinates: [
           [start.lng, start.lat],
           [end.lng, end.lat]
         ],
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // ★ 【解決策①】「おすすめ」ルートを選択し、より裏道優先に            ★
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
         preference: 'recommended', 
-        
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // ★ 【解決策②】サーバーのルール通り、「options」で囲む            ★
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
         options: {
           avoid_features: ['ferries', 'steps'] 
         }
@@ -103,15 +98,11 @@
     })
     .then(res => {
         if (!res.ok) {
-            // エラーレスポンスの場合は、ここで処理を中断させる
             throw new Error('サーバーからエラーが返されました: ' + res.status);
         }
         return res.json();
     })
     .then(data => {
-      // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-      // ★ 【解決策③】ルートが見つからなかった場合のエラー処理を追加        ★
-      // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
       if (!data.features || data.features.length === 0) {
         throw new Error('ルートデータが見つかりません。');
       }
@@ -126,12 +117,10 @@
       console.error(err);
       instructions.textContent = "ルート取得に失敗しました。地点を変えてお試しください。";
       instructions.style.color = 'red';
-      // 失敗したらマーカーをリセットしてやり直せるように
       setTimeout(resetRoute, 3000); 
     });
   }
 
-  // 地図をダブルクリックでもリセットできるように
   map.on('dblclick', resetRoute);
 </script>
 
