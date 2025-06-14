@@ -2,10 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>裏道サイクリングナビ</title>
+  <title>【完成版】裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+  <!-- ★ 【解決策】描画のプロ「Leaflet Routing Machine」を、改めて呼び戻します ★ -->
+  <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
   <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
   <style>
@@ -16,6 +19,10 @@
       transform: translateX(-50%); background: white; padding: 8px 15px;
       border-radius: 5px; z-index: 1000; box-shadow: 0 0 10px rgba(0,0,0,0.3);
       pointer-events: none;
+    }
+    /* Leaflet Routing Machineが自動で表示するルート案内パネルは隠します */
+    .leaflet-routing-container {
+      display: none;
     }
   </style>
 </head>
@@ -32,7 +39,7 @@
   let start = null, startMarker = null, endMarker = null, control = null;
 
   function reset() {
-    if (control) map.removeControl(control);
+    if (control) map.removeControl(control); // controlを削除
     if (startMarker) map.removeLayer(startMarker);
     if (endMarker) map.removeLayer(endMarker);
     start = startMarker = endMarker = control = null;
@@ -50,15 +57,14 @@
       if(endMarker) map.removeLayer(endMarker);
       endMarker = L.marker(e.latlng).addTo(map);
       instructions.innerText = '究極の裏道を検索中…';
-      fetchRoute(start, e.latlng);
+      fetchRouteAndDraw(start, e.latlng);
     }
   });
 
-
-  function fetchRoute(s, e) {
-    const url = '/api/route';
+  function fetchRouteAndDraw(s, e) {
     if(control) map.removeControl(control);
-    fetch(url, {
+    
+    fetch('/api/route', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -74,27 +80,30 @@
     .then(data => {
       if (!data.features || data.features.length === 0) throw new Error('ルートが見つかりません');
       
-      const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
-
-      // Leaflet Routing Machineの描画機能を、ルートデータだけを受け取って表示するように使います
+      // バックエンドから受け取ったルート情報
+      const route = data.features[0];
+      
+      // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+      // ★ これが最後の、そして唯一の正しい修正点です ★
+      // ★ 描画のプロ「Leaflet Routing Machine」に、計算済みのルートを渡してお任せします ★
+      // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
       control = L.Routing.control({
         waypoints: [ L.latLng(s.lat, s.lng), L.latLng(e.lat, e.lng) ],
-        routeWhileDragging: false,
+        // このルートを、私たちが計算したルートで「上書き」するイメージです
+        routes: [ L.Routing.osrmv1.prototype._convertRoute(route) ],
+        lineOptions: {
+          styles: [{ color: 'deeppink', weight: 5, opacity: 0.8 }]
+        },
+        // 余計な機能はすべてOFFにします
         addWaypoints: false,
-        createMarker: function() { return null; }, // マーカーは自分で管理するので不要
-        router: new L.Routing.OSRMv1({serviceUrl:''}), // ルーティングはしないのでダミー
-        lineOptions: { styles: [{ color: 'deeppink', weight: 5, opacity: 0.8 }] }
+        routeWhileDragging: false,
+        createMarker: function() { return null; } // マーカーは自前で管理
       }).addTo(map);
 
-      // 計算済みのルートをセットして描画
-      control.getPlan().setWaypoints([]); // デフォルトのマーカーを消す
-      control.hide(); // ルート案内パネルを隠す
-      L.polyline(coords, { color: 'deeppink', weight: 5, opacity: 0.8 }).addTo(control);
-
-      map.fitBounds(L.polyline(coords).getBounds());
-      
+      // 役目を終えた自前のマーカーは消します
       if(startMarker) map.removeLayer(startMarker);
       if(endMarker) map.removeLayer(endMarker);
+      
       instructions.innerText = '裏道ルート表示完了！ 再クリックでリセット';
     })
     .catch(err => {
