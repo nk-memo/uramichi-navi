@@ -8,8 +8,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+  <!-- ★ 地名検索プラグインはもう不要なので、CSSとJSの読み込みを完全に削除しました ★ -->
+  <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 
   <style>
     html, body { height: 100%; margin: 0; font-family: sans-serif; }
@@ -33,11 +34,9 @@
     }
     #locate-btn:hover { background-color: #0056b3; }
     
+    /* 自前の検索フォームのスタイル */
     #search-container {
       position: absolute;
-      /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-      /* ★ 【修正点①】レイヤーコントロールとの隙間を確保 ★ */
-      /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
       bottom: 80px; 
       left: 10px;
       z-index: 1000;
@@ -54,6 +53,7 @@
       box-shadow: 0 1px 5px rgba(0,0,0,0.2);
       font-size: 14px;
       box-sizing: border-box;
+      background-color: white;
     }
     .search-form input[type="text"]:focus {
       outline: none;
@@ -66,9 +66,6 @@
       bottom: 3px;
       width: 60px;
       border: none;
-      /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-      /* ★ 【修正点②】検索ボタンの色を青に統一 ★ */
-      /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
       background-color: #007bff;
       color: white;
       font-weight: bold;
@@ -76,7 +73,7 @@
       cursor: pointer;
     }
     .search-form button:hover {
-      background-color: #0056b3; /* ホバー色も青系に */
+      background-color: #0056b3;
     }
   </style>
 </head>
@@ -118,7 +115,9 @@
     collapsed: false
   }).addTo(map);
 
-  const geocoder = L.Control.Geocoder.nominatim();
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【機能修正】地名検索ロジックを、プラグインに頼らない、直接通信方式に変更 ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   const searchInput = document.getElementById('search-input');
   const searchBtn = document.getElementById('search-btn');
 
@@ -126,26 +125,42 @@
     const query = searchInput.value;
     if (!query) return;
 
-    geocoder.geocode(query, function(results) {
-      if (results && results.length > 0) {
-        const result = results[0];
-        map.fitBounds(result.bbox);
-        setTimeout(function() {
-            if (map.getZoom() > 15) {
-                map.setZoom(15);
-            }
-        }, 200);
-      } else {
-        alert('地名が見つかりませんでした。');
-      }
-    });
+    // Nominatim APIに直接問い合わせる
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
+    
+    fetch(nominatimUrl)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          const result = data[0]; // 最初の検索結果を利用
+          const bounds = L.latLngBounds([
+            [result.boundingbox[0], result.boundingbox[2]],
+            [result.boundingbox[1], result.boundingbox[3]]
+          ]);
+          map.fitBounds(bounds);
+          setTimeout(function() {
+              if (map.getZoom() > 15) {
+                  map.setZoom(15);
+              }
+          }, 200);
+        } else {
+          alert('地名が見つかりませんでした。');
+        }
+      })
+      .catch(err => {
+        console.error('地名検索エラー:', err);
+        alert('地名検索中にエラーが発生しました。');
+      });
   }
+  // ボタンクリックで検索
   searchBtn.addEventListener('click', performSearch);
+  // Enterキーでも検索
   searchInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       performSearch();
     }
   });
+
 
   const instructions = document.getElementById('instructions');
   let startLatLng = null;
