@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>【最終完成版】裏道サイクリングナビ</title>
+  <title>裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -29,11 +29,6 @@
 <div id="instructions">出発地点をクリックしてください</div>
 
 <script>
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 1. APIキーをここから完全に削除します！ ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // const orsApiKey = '...'; // ← この行を削除
-
   const map = L.map('map').setView([35.387, 139.589], 14);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
@@ -67,9 +62,6 @@
   });
 
   function fetchRoute(start, end) {
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    // ★ 2. 問い合わせ先を、OpenRouteServiceから、あなたの中継サーバーに変更 ★
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     const url = '/api/route';
 
     if (routeLine) {
@@ -79,12 +71,8 @@
     fetch(url, {
       method: 'POST',
       headers: {
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // ★ 3. APIキーのヘッダーは、もうブラウザからは不要です ★
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
         'Content-Type': 'application/json'
       },
-      // 送信する情報は変わりません
       body: JSON.stringify({
         coordinates: [
           [start.lng, start.lat],
