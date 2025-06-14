@@ -16,7 +16,8 @@
     #map { height: 100%; }
     #instructions {
       position: absolute;
-      top: 10px; left: 50%;
+      top: 10px; /* ★★★ ボタンとの隙間を確保 ★★★ */
+      left: 50%;
       transform: translateX(-50%);
       background: white;
       padding: 8px 15px;
@@ -27,7 +28,7 @@
     }
     #locate-btn {
       position: absolute;
-      top: 10px;
+      top: 50px; /* ★★★ メッセージとの隙間を確保 ★★★ */
       right: 10px;
       z-index: 1000;
       padding: 8px 12px;
@@ -40,13 +41,21 @@
     #locate-btn:hover {
       background-color: #f4f4f4;
     }
+    /* ★★★ 地名検索フォームが常に表示されるように調整 ★★★ */
+    .leaflet-control-geocoder-form {
+        display: block !important;
+    }
+    .leaflet-control-geocoder-icon {
+        display: none !important;
+    }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
-<div id="instructions">出発地点をクリックしてください</div>
-<button id="locate-btn">現在地を出発地点にする</button>
+<!-- ★★★ メッセージの初期文言を修正 ★★★ -->
+<div id="instructions">出発地点をクリック</div>
+<button id="locate-btn">現在地を出発地点に</button>
 
 <script>
   // 【地図レイヤーの定義】
@@ -67,17 +76,22 @@
   };
 
   // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【修正点①】地図切り替えコントロールを「左下(bottomleft)」に配置 ★
+  // ★ 【修正点①】地図切り替えコントロールを「最初から開いた状態」で表示 ★
   // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  L.control.layers(baseLayers, null, { position: 'bottomleft' }).addTo(map);
+  L.control.layers(baseLayers, null, { 
+    position: 'bottomleft',
+    collapsed: false // ★ この一行を追加
+  }).addTo(map);
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【修正点②】地名検索コントロールを「左下(bottomleft)」に配置 ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【修正点②】地名検索コントロールを「最初から開いた状態」で表示 ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   L.Control.geocoder({
-    position: 'bottomleft', // ★ ここを追加
+    position: 'bottomleft',
     defaultMarkGeocode: false,
-    placeholder: '地名を検索...'
+    placeholder: '地名を検索...',
+    collapsed: false, // ★ この一行を追加
+    showResultIcons: false // 検索結果のアイコンを非表示にしてシンプルに
   }).on('markgeocode', function(e) {
     map.fitBounds(e.geocode.bbox);
   }).addTo(map);
@@ -99,10 +113,10 @@
         
         startLatLng = userLatLng;
         startMarker = L.marker(startLatLng).addTo(map);
-        instructions.textContent = "到着地点をクリックしてください";
+        instructions.textContent = "到着地点をクリック"; // ★ 文言修正
       },
       function(error) {
-        alert('位置情報の取得に失敗しました。ブラウザやOSの設定で位置情報サービスが許可されているか確認してください。');
+        alert('位置情報の取得に失敗しました。');
         console.error(error);
       }
     );
@@ -113,7 +127,7 @@
     if (endMarker) map.removeLayer(endMarker);
     if (routeLine) map.removeLayer(routeLine);
     startLatLng = startMarker = endMarker = routeLine = null;
-    instructions.textContent = "出発地点をクリックしてください";
+    instructions.textContent = "出発地点をクリック"; // ★ 文言修正
     instructions.style.color = 'black';
   }
 
@@ -126,7 +140,7 @@
     if (!startLatLng) {
       startLatLng = e.latlng;
       startMarker = L.marker(startLatLng).addTo(map);
-      instructions.textContent = "到着地点をクリックしてください";
+      instructions.textContent = "到着地点をクリック"; // ★ 文言修正
     } else {
       if (endMarker) map.removeLayer(endMarker);
       endMarker = L.marker(e.latlng).addTo(map);
