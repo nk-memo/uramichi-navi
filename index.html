@@ -51,43 +51,51 @@
       background-color: #0056b3;
     }
     
-    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-    /* ★ 【UI修正】地名検索フォームのデザインを、ご指定の通りに変更します ★ */
-    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    /* ★ 【UI最終仕上げ】地名検索フォームのデザインを、ご指定の通りに、より美しく仕上げます ★ */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
     .leaflet-control-geocoder {
-        /* 全体の枠線を消してスッキリさせる */
         border: none;
         box-shadow: none;
+        background-color: transparent; /* 背景を透明に */
     }
     .leaflet-control-geocoder-form {
       display: flex !important;
-      border: 1px solid #ccc; /* フォームとボタンを囲む枠線 */
-      border-radius: 4px;
-      overflow: hidden; /* 角丸を効かせるため */
+      border: 1px solid #aaa; /* 枠線を少し濃く */
+      border-radius: 20px; /* ★ 角をより丸く、一体感を出す */
+      overflow: hidden;
       box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+      background-color: white;
     }
     .leaflet-control-geocoder-form input {
-        /* 入力欄の枠線を消す */
         border: none;
-        width: 150px; /* 横幅を調整 */
+        width: 150px;
+        background-color: transparent; /* 背景を親要素に合わせる */
+        padding-left: 15px; /* 文字の開始位置を調整 */
+    }
+     .leaflet-control-geocoder-form input:focus {
+        outline: none; /* フォーカス時の青い枠線を消す */
     }
     .leaflet-control-geocoder-icon {
-      /* アイコンを「検索」ボタンに置き換えるためのスタイル */
       display: flex !important;
       align-items: center;
       justify-content: center;
-      background-color: #28a745; /* ★ 緑色に変更 ★ */
+      background-color: #90CE9C; /* ★ ご指定の緑色に変更 ★ */
       color: white;
       font-weight: bold;
       cursor: pointer;
-      padding: 0 12px;
+      padding: 0 18px; /* ボタンの幅を調整 */
     }
      .leaflet-control-geocoder-icon:hover {
-      background-color: #218838; /* ホバー時にもう少し濃い緑に */
+      background-color: #7ab987; /* ホバー時にもう少し濃い緑に */
     }
-    /* デフォルトの虫眼鏡アイコンは非表示にする */
     .leaflet-control-geocoder-icon::after {
         display: none;
+    }
+    /* 検索結果リストのスタイル調整 */
+    .leaflet-control-geocoder-alternatives {
+        box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+        border-radius: 4px;
     }
   </style>
 </head>
@@ -122,26 +130,20 @@
     collapsed: false
   }).addTo(map);
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【機能修正】地名検索の挙動を、お客様の理想通りにカスタマイズします ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   const geocoder = L.Control.geocoder({
     position: 'bottomleft',
     defaultMarkGeocode: false,
     placeholder: '地名を検索...',
     collapsed: false,
     showResultIcons: false,
-    // ★【解決策②】アイコンを「検索」という文字に置き換える
-    iconLabel: '検索' 
+    iconLabel: '検索'
   }).on('markgeocode', function(e) {
-    // ★【解決策①】ズームしすぎないように、地図の移動方法をさらに改善
-    // 検索結果のバウンディングボックスにフィットさせた後、1段階ズームアウトする
     map.fitBounds(e.geocode.bbox);
     setTimeout(function() {
         if (map.getZoom() > 15) {
-            map.setZoom(15); // 最大ズームレベルを15に制限
+            map.setZoom(15);
         }
-    }, 200); // わずかに遅延させて実行
+    }, 200);
   }).addTo(map);
 
   const instructions = document.getElementById('instructions');
