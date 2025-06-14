@@ -1,1 +1,0 @@
-# uramichi-navi
