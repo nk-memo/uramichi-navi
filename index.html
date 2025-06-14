@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
   <style>
     html, body { height: 100%; margin: 0; font-family: sans-serif; }
@@ -31,43 +33,30 @@
     }
     #locate-btn:hover { background-color: #0056b3; }
     
-    /* 自前の検索フォームのスタイル */
     #search-container {
-      position: absolute;
-      bottom: 80px; 
-      left: 10px;
-      z-index: 1000;
+      position: absolute; bottom: 80px; left: 10px; z-index: 1000;
     }
     .search-form {
-      position: relative;
-      width: 200px;
+      position: relative; width: 200px;
     }
     .search-form input[type="text"] {
-      width: 100%;
-      padding: 10px 70px 10px 15px;
-      border: 1px solid #aaa;
-      border-radius: 20px;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.2);
-      font-size: 14px;
-      box-sizing: border-box;
-      background-color: white;
+      width: 100%; padding: 10px 70px 10px 15px;
+      border: 1px solid #aaa; border-radius: 20px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-size: 14px;
+      box-sizing: border-box; background-color: white;
     }
     .search-form input[type="text"]:focus {
-      outline: none;
-      border-color: #007bff;
+      outline: none; border-color: #007bff;
     }
     .search-form button {
-      position: absolute;
-      top: 3px;
-      right: 3px;
-      bottom: 3px;
-      width: 60px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      font-weight: bold;
-      border-radius: 20px;
+      position: absolute; top: 3px; right: 3px; bottom: 3px;
+      width: 60px; border: none; background-color: #007bff;
+      color: white; font-weight: bold; border-radius: 20px;
       cursor: pointer;
+      
+      display: flex;
+      align-items: center;    
+      justify-content: center;
     }
     .search-form button:hover {
       background-color: #0056b3;
@@ -78,7 +67,7 @@
 
 <div id="map"></div>
 <div id="header-container">
-  <div id="instructions">出発地点をクリック</div>
+  <div id="instructions">出発地点をタッチ</div>
 </div>
 <button id="locate-btn">現在地を出発地点に</button>
 
@@ -112,7 +101,7 @@
     collapsed: false
   }).addTo(map);
 
-
+  const geocoder = L.Control.Geocoder.nominatim();
   const searchInput = document.getElementById('search-input');
   const searchBtn = document.getElementById('search-btn');
 
@@ -120,14 +109,13 @@
     const query = searchInput.value;
     if (!query) return;
 
-
     const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
     
     fetch(nominatimUrl)
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
-          const result = data[0]; 
+          const result = data[0];
           const bounds = L.latLngBounds([
             [result.boundingbox[0], result.boundingbox[2]],
             [result.boundingbox[1], result.boundingbox[3]]
@@ -139,30 +127,26 @@
               }
           }, 200);
         } else {
-          alert('地名が見つかりませんでした。');
+          alert('地名が見つかりませんでした');
         }
       })
       .catch(err => {
         console.error('地名検索エラー:', err);
-        alert('地名検索中にエラーが発生しました。');
+        alert('地名検索中にエラーが発生しました');
       });
   }
-  
   searchBtn.addEventListener('click', performSearch);
-  
   searchInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       performSearch();
     }
   });
 
-
   const instructions = document.getElementById('instructions');
   let startLatLng = null;
   let startMarker, endMarker, routeLine;
   const locateBtn = document.getElementById('locate-btn');
 
-  
   locateBtn.addEventListener('click', function() {
     navigator.geolocation.getCurrentPosition(
       function(position) {
@@ -176,7 +160,7 @@
         instructions.textContent = "到着地点をタッチ";
       },
       function(error) {
-        alert('位置情報の取得に失敗しました。');
+        alert('位置情報が取得できません');
         console.error(error);
       }
     );
@@ -229,17 +213,17 @@
       return res.json();
     })
     .then(data => {
-      if (!data.features || data.features.length === 0) throw new Error('ルートが見つかりません。');
+      if (!data.features || data.features.length === 0) throw new Error('ルートが見つかりません');
       const coords = data.features[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
       routeLine = L.polyline(coords, { color: 'deeppink', weight: 5 }).addTo(map);
       map.fitBounds(routeLine.getBounds());
       if(startMarker) map.removeLayer(startMarker);
       if(endMarker) map.removeLayer(endMarker);
-      instructions.textContent = "地図タッチでリセット";
+      instructions.textContent = "地図を再タッチでリセット";
     })
     .catch(err => {
       console.error(err);
-      instructions.textContent = "ルート取得に失敗しました。地点を変えてお試しください。";
+      instructions.textContent = "ルート取得に失敗しました。地点を変えてお試しください";
       instructions.style.color = 'red';
       setTimeout(resetRoute, 3000); 
     });
