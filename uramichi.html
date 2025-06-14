@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>【安全版】裏道サイクリングナビ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; font-family: sans-serif; }
+    #map { height: 100%; }
+    #instructions {
+      position: absolute; top: 10px; left: 50%;
+      transform: translateX(-50%); background: white; padding: 8px 15px;
+      border-radius: 5px; z-index: 1000; box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div id="instructions">出発地点をクリックしてください</div>
+<script>
+  const map = L.map('map').setView([35.387, 139.589], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  const instructions = document.getElementById('instructions');
+  let start = null, startMarker = null, endMarker = null, control = null;
+
+  function reset() {
+    if (control) map.removeControl(control);
+    if (startMarker) map.removeLayer(startMarker);
+    if (endMarker) map.removeLayer(endMarker);
+    start = startMarker = endMarker = control = null;
+    instructions.innerText = '出発地点をクリックしてください';
+    instructions.style.color = '#000';
+  }
+
+  map.on('click', e => {
+    if (!start) {
+      reset();
+      start = e.latlng;
+      startMarker = L.marker(start).addTo(map);
+      instructions.innerText = '到着地点をクリックしてください';
+    } else {
+      if(endMarker) map.removeLayer(endMarker);
+      endMarker = L.marker(e.latlng).addTo(map);
+      instructions.innerText = '究極の裏道を検索中…';
+      drawRoute(start, e.latlng);
+    }
+  });
+
+  function fetchRoute(s, e) {
+    const url = '/api/route'; // ★自分の中継サーバーを呼び出す
+    if(control) map.removeControl(control);
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        coordinates: [[s.lng, s.lat], [e.lng, e.lat]],
+        preference: 'recommended', 
+        options: { avoid_features: ['ferries', 'steps'] }
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('サーバー応答エラー: ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      if (!data.features || data.features.length === 0) throw new Error('ルートが見つかりません');
+      const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      control = L.Routing.control({
+        waypoints: [s, e],
+        routeWhileDragging: false,
+        addWaypoints: false,
+        router: L.Routing.osrmv1({serviceUrl:''}), // ダミーのルーター
+        lineOptions: { styles: [{ color: 'deeppink', weight: 5 }] }
+      }).addTo(map);
+      control.setWaypoints([]); // マーカーを消す
+      L.polyline(coords, { color: 'deeppink', weight: 5 }).addTo(control);
+      map.fitBounds(coords);
+      if(startMarker) map.removeLayer(startMarker);
+      if(endMarker) map.removeLayer(endMarker);
+      instructions.innerText = '裏道ルート表示完了！ 再クリックでリセット';
+    })
+    .catch(err => {
+      console.error(err);
+      instructions.innerText = 'ルート取得に失敗しました…';
+      instructions.style.color = 'red';
+      setTimeout(reset, 3000);
+    });
+  }
+  map.on('dblclick', reset);
+</script>
+</body>
+</html>
