@@ -5,8 +5,13 @@
   <title>【完成版】裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
+  <!-- Leaflet本体 -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- ★★★ 地名検索機能の部品を追加 ★★★ -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
   <style>
     html, body { height: 100%; margin: 0; font-family: sans-serif; }
@@ -20,13 +25,13 @@
       border-radius: 5px;
       z-index: 1000;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      pointer-events: none; /* メッセージ自体はクリックできないようにする */
+      pointer-events: none;
     }
-    /* ★ ボタンのスタイルを追加 ★ */
+    /* ★★★ ボタンのスタイルを右上に変更 ★★★ */
     #locate-btn {
       position: absolute;
-      top: 50px;
-      left: 10px;
+      top: 10px; /* 地図の操作ボタンと重ならないように調整 */
+      right: 10px;
       z-index: 1000;
       padding: 8px 12px;
       font-size: 14px;
@@ -45,48 +50,64 @@
 <div id="map"></div>
 <div id="instructions">出発地点をクリックしてください</div>
 
-<!-- ★★★★★★★★★★★★★★★★★★★★★★★ -->
-<!-- ★ このボタンを追加しました ★ -->
-<!-- ★★★★★★★★★★★★★★★★★★★★★★★ -->
-<button id="locate-btn">現在地</button>
+<!-- ★★★ ボタンの文言を変更 ★★★ -->
+<button id="locate-btn">現在地を出発地点にする</button>
 
 <script>
-  const map = L.map('map').setView([35.387, 139.589], 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【地図レイヤーの定義】標準と航空写真の2種類を用意します ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  const std = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
+  });
+  const satellite = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+  });
+
+  const map = L.map('map', {
+    layers: [std] // デフォルトで標準地図を表示
+  }).setView([35.387, 139.589], 14);
+
+  const baseLayers = {
+    "標準地図": std,
+    "航空写真": satellite
+  };
+  L.control.layers(baseLayers).addTo(map);
+
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【地名検索機能の追加】 ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  L.Control.geocoder({
+    defaultMarkGeocode: false, // 検索結果に自動でマーカーを立てない
+    placeholder: '地名を検索...'
+  }).on('markgeocode', function(e) {
+    map.fitBounds(e.geocode.bbox); // 検索した場所に地図を移動
   }).addTo(map);
 
   const instructions = document.getElementById('instructions');
   let startLatLng = null;
   let startMarker, endMarker, routeLine;
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ ここから、現在地取得機能のコードを追加しました ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【現在地ボタンの機能変更】押したら出発点として設定する ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   const locateBtn = document.getElementById('locate-btn');
-  let userMarker = null; // 現在地を示すマーカーを保存する変数
 
   locateBtn.addEventListener('click', function() {
-    // ユーザーに位置情報の許可を求めます
     navigator.geolocation.getCurrentPosition(
-      // 取得に成功した場合の処理
       function(position) {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         const userLatLng = L.latLng(lat, lng);
-        
-        // 地図を現在地に移動し、ズームする
-        map.setView(userLatLng, 16);
 
-        // すでに現在地マーカーがあれば削除してから、新しいマーカーを置く
-        if (userMarker) {
-          map.removeLayer(userMarker);
-        }
-        userMarker = L.marker(userLatLng).addTo(map)
-          .bindPopup('現在地').openPopup();
+        resetRoute(); // まず全てをリセット
+        map.setView(userLatLng, 16); // 現在地に移動
+        
+        // 現在地を出発点として設定
+        startLatLng = userLatLng;
+        startMarker = L.marker(startLatLng).addTo(map);
+        instructions.textContent = "到着地点をクリックしてください";
       },
-      // 取得に失敗した場合の処理
       function(error) {
         alert('位置情報の取得に失敗しました。ブラウザやOSの設定で位置情報サービスが許可されているか確認してください。');
         console.error(error);
@@ -94,11 +115,6 @@
     );
   });
   
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 現在地取得機能のコードはここまでです ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-
-
   function resetRoute() {
     if (startMarker) map.removeLayer(startMarker);
     if (endMarker) map.removeLayer(endMarker);
@@ -128,12 +144,9 @@
 
   function fetchRoute(start, end) {
     const url = '/api/route';
-
     fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         coordinates: [
           [start.lng, start.lat],
@@ -146,15 +159,11 @@
       })
     })
     .then(res => {
-        if (!res.ok) {
-            throw new Error('サーバーからエラーが返されました: ' + res.status);
-        }
-        return res.json();
+      if (!res.ok) throw new Error('サーバー応答エラー: ' + res.status);
+      return res.json();
     })
     .then(data => {
-      if (!data.features || data.features.length === 0) {
-        throw new Error('ルートデータが見つかりません。');
-      }
+      if (!data.features || data.features.length === 0) throw new Error('ルートが見つかりません。');
       const coords = data.features[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
       routeLine = L.polyline(coords, { color: 'deeppink', weight: 5 }).addTo(map);
       map.fitBounds(routeLine.getBounds());
