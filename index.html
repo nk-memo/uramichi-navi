@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>【完成版】裏道サイクリングナビ</title>
+  <title>裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -14,34 +14,47 @@
   <style>
     html, body { height: 100%; margin: 0; font-family: sans-serif; }
     #map { height: 100%; }
-    #instructions {
+    
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    /* ★ 【デザイン修正】ヘッダー部分のスタイルを全面的に見直しました ★ */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    #header-container {
       position: absolute;
-      top: 10px; /* ★★★ ボタンとの隙間を確保 ★★★ */
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      background: white;
-      padding: 8px 15px;
-      border-radius: 5px;
       z-index: 1000;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      pointer-events: none;
+      display: flex; /* Flexboxを有効化 */
+      flex-direction: column; /* 要素を縦に並べる */
+      align-items: center; /* 中央揃え */
+      gap: 8px; /* 要素間の隙間 */
     }
-    #locate-btn {
-      position: absolute;
-      top: 50px; /* ★★★ メッセージとの隙間を確保 ★★★ */
-      right: 10px;
-      z-index: 1000;
-      padding: 8px 12px;
+
+    #instructions, #locate-btn {
+      background: white;
+      padding: 10px 16px; /* サイズ感を統一 */
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
       font-size: 14px;
+      text-align: center;
+      width: 220px; /* 横幅を統一 */
+      box-sizing: border-box; /* paddingを含めて横幅を計算 */
+    }
+
+    #instructions {
+      pointer-events: none; /* メッセージはクリック不可 */
+    }
+
+    #locate-btn {
       cursor: pointer;
-      border-radius: 4px;
       border: 1px solid #ccc;
-      background-color: white;
+      width: 220px; /* メッセージと横幅を統一 */
     }
     #locate-btn:hover {
       background-color: #f4f4f4;
     }
-    /* ★★★ 地名検索フォームが常に表示されるように調整 ★★★ */
+    
+    /* 地名検索フォームが常に表示されるように調整 */
     .leaflet-control-geocoder-form {
         display: block !important;
     }
@@ -53,9 +66,14 @@
 <body>
 
 <div id="map"></div>
-<!-- ★★★ メッセージの初期文言を修正 ★★★ -->
-<div id="instructions">出発地点をクリック</div>
-<button id="locate-btn">現在地を出発地点に</button>
+
+<!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+/* ★ 【HTML構造の修正】メッセージとボタンを一つのdivでグループ化しました ★ */
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */ -->
+<div id="header-container">
+  <div id="instructions">出発地点をクリック</div>
+  <button id="locate-btn">現在地を出発地点に</button>
+</div>
 
 <script>
   // 【地図レイヤーの定義】
@@ -75,23 +93,17 @@
     "航空写真": satellite
   };
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【修正点①】地図切り替えコントロールを「最初から開いた状態」で表示 ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   L.control.layers(baseLayers, null, { 
     position: 'bottomleft',
-    collapsed: false // ★ この一行を追加
+    collapsed: false
   }).addTo(map);
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【修正点②】地名検索コントロールを「最初から開いた状態」で表示 ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   L.Control.geocoder({
     position: 'bottomleft',
     defaultMarkGeocode: false,
     placeholder: '地名を検索...',
-    collapsed: false, // ★ この一行を追加
-    showResultIcons: false // 検索結果のアイコンを非表示にしてシンプルに
+    collapsed: false,
+    showResultIcons: false
   }).on('markgeocode', function(e) {
     map.fitBounds(e.geocode.bbox);
   }).addTo(map);
@@ -113,7 +125,7 @@
         
         startLatLng = userLatLng;
         startMarker = L.marker(startLatLng).addTo(map);
-        instructions.textContent = "到着地点をクリック"; // ★ 文言修正
+        instructions.textContent = "到着地点をクリック";
       },
       function(error) {
         alert('位置情報の取得に失敗しました。');
@@ -127,7 +139,7 @@
     if (endMarker) map.removeLayer(endMarker);
     if (routeLine) map.removeLayer(routeLine);
     startLatLng = startMarker = endMarker = routeLine = null;
-    instructions.textContent = "出発地点をクリック"; // ★ 文言修正
+    instructions.textContent = "出発地点をクリック";
     instructions.style.color = 'black';
   }
 
@@ -140,7 +152,7 @@
     if (!startLatLng) {
       startLatLng = e.latlng;
       startMarker = L.marker(startLatLng).addTo(map);
-      instructions.textContent = "到着地点をクリック"; // ★ 文言修正
+      instructions.textContent = "到着地点をクリック";
     } else {
       if (endMarker) map.removeLayer(endMarker);
       endMarker = L.marker(e.latlng).addTo(map);
@@ -176,7 +188,7 @@
       map.fitBounds(routeLine.getBounds());
       if(startMarker) map.removeLayer(startMarker);
       if(endMarker) map.removeLayer(endMarker);
-      instructions.textContent = "裏道ルートが表示されました！ 地図を再クリックでリセット。";
+      instructions.textContent = "地図を再クリックでリセット";
     })
     .catch(err => {
       console.error(err);
