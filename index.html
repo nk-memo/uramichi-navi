@@ -173,7 +173,7 @@
         map.setView(userLatLng, 16);
         startLatLng = userLatLng;
         startMarker = L.marker(startLatLng).addTo(map);
-        instructions.textContent = "到着地点をクリック";
+        instructions.textContent = "到着地点をタッチ";
       },
       function(error) {
         alert('位置情報の取得に失敗しました。');
@@ -187,7 +187,7 @@
     if (endMarker) map.removeLayer(endMarker);
     if (routeLine) map.removeLayer(routeLine);
     startLatLng = startMarker = endMarker = routeLine = null;
-    instructions.textContent = "出発地点をクリック";
+    instructions.textContent = "出発地点をタッチ";
     instructions.style.color = 'black';
   }
 
@@ -199,7 +199,7 @@
     if (!startLatLng) {
       startLatLng = e.latlng;
       startMarker = L.marker(startLatLng).addTo(map);
-      instructions.textContent = "到着地点をクリック";
+      instructions.textContent = "到着地点をタッチ";
     } else {
       if (endMarker) map.removeLayer(endMarker);
       endMarker = L.marker(e.latlng).addTo(map);
