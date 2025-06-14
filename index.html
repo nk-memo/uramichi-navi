@@ -32,35 +32,42 @@
       pointer-events: none;
     }
     
-    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-    /* ★ 【デザイン修正】現在地ボタンのスタイルを全面的に見直しました ★ */
-    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
     #locate-btn {
       position: absolute;
-      bottom: 30px; /* ★ 著作権表示との隙間を確保 ★ */
+      bottom: 30px;
       right: 10px;
       z-index: 1000;
-      /* ★ 青い板に白文字のデザイン ★ */
-      background-color: #007bff; /* 目立つ青色 */
-      color: white; /* 白文字 */
-      border: none; /* 枠線なし */
-      border-radius: 5px; /* 角を丸く */
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
       padding: 10px 16px;
       font-size: 14px;
-      font-weight: bold; /* 文字を少し太く */
+      font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.3); /* 影をつけて立体感を出す */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
     #locate-btn:hover {
-      background-color: #0056b3; /* ホバー時にもう少し濃い青に */
+      background-color: #0056b3;
     }
     
-    /* 地名検索フォームが常に表示されるように調整 */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    /* ★ 【UI修正】地名検索のアイコンとフォームの見た目を調整します ★ */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
     .leaflet-control-geocoder-form {
-        display: block !important;
+      display: flex !important; /* 横並びにする */
+      align-items: center; /* 垂直方向の中央揃え */
     }
     .leaflet-control-geocoder-icon {
-        display: none !important;
+      /* アイコンを復活させ、ボタンのように見せる */
+      display: block !important;
+      border-left: 1px solid #ccc;
+      cursor: pointer;
+      padding: 5px;
+      background-color: #f4f4f4;
+    }
+    .leaflet-control-geocoder-icon:hover {
+      background-color: #e4e4e4;
     }
   </style>
 </head>
@@ -70,9 +77,6 @@
 <div id="header-container">
   <div id="instructions">出発地点をクリック</div>
 </div>
-<!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-/* ★ 【HTML構造の修正】ボタンをヘッダーの外に出しました ★ */
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */ -->
 <button id="locate-btn">現在地を出発地点に</button>
 
 <script>
@@ -98,21 +102,39 @@
     collapsed: false
   }).addTo(map);
 
-  L.Control.geocoder({
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ 【機能修正】地名検索の挙動を、お客様の理想通りにカスタマイズします ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  const geocoder = L.Control.geocoder({
     position: 'bottomleft',
-    defaultMarkGeocode: false,
+    defaultMarkGeocode: false, // 結果にマーカーは立てない
     placeholder: '地名を検索...',
-    collapsed: false,
-    showResultIcons: false
+    collapsed: false, // 常に開いておく
+    showResultIcons: false // 検索結果リストのアイコンは不要
   }).on('markgeocode', function(e) {
-    map.fitBounds(e.geocode.bbox);
+    // ★【解決策①】ズームしすぎないように、地図の移動方法を変更
+    // BBox全体にfitさせるのではなく、中心点に、ズームレベル15で移動する
+    map.setView(e.geocode.center, 15);
   }).addTo(map);
+
+  // ★【解決策②】フォームの右のアイコンをクリックでも検索を実行させる
+  // geocoderコントロールの内部要素にアクセスしてイベントを設定
+  const geocoderContainer = geocoder.getContainer();
+  const searchIcon = geocoderContainer.querySelector('.leaflet-control-geocoder-icon');
+  const searchInput = geocoderContainer.querySelector('input[type="text"]');
+  if (searchIcon && searchInput) {
+    searchIcon.addEventListener('click', function() {
+      // 入力されたテキストで、強制的にジオコーディングを実行
+      geocoder.geocode(searchInput.value);
+    });
+  }
 
   const instructions = document.getElementById('instructions');
   let startLatLng = null;
   let startMarker, endMarker, routeLine;
   const locateBtn = document.getElementById('locate-btn');
 
+  // ... 以降の locateBtn, resetRoute, map.on('click'), fetchRoute 関数は変更なし ...
   locateBtn.addEventListener('click', function() {
     navigator.geolocation.getCurrentPosition(
       function(position) {
