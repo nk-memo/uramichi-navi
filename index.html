@@ -2,15 +2,12 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>【完成版】裏道サイクリングナビ</title>
+  <title>裏道サイクリングナビ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
-  <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
-  <!-- ★ 地名検索プラグインはもう不要なので、CSSとJSの読み込みを完全に削除しました ★ -->
-  <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 
   <style>
     html, body { height: 100%; margin: 0; font-family: sans-serif; }
@@ -93,7 +90,7 @@
 </div>
 
 <script>
-  // 【地図レイヤーの定義】
+
   const std = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   });
@@ -115,9 +112,7 @@
     collapsed: false
   }).addTo(map);
 
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  // ★ 【機能修正】地名検索ロジックを、プラグインに頼らない、直接通信方式に変更 ★
-  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
   const searchInput = document.getElementById('search-input');
   const searchBtn = document.getElementById('search-btn');
 
@@ -125,14 +120,14 @@
     const query = searchInput.value;
     if (!query) return;
 
-    // Nominatim APIに直接問い合わせる
+
     const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`;
     
     fetch(nominatimUrl)
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
-          const result = data[0]; // 最初の検索結果を利用
+          const result = data[0]; 
           const bounds = L.latLngBounds([
             [result.boundingbox[0], result.boundingbox[2]],
             [result.boundingbox[1], result.boundingbox[3]]
@@ -152,9 +147,9 @@
         alert('地名検索中にエラーが発生しました。');
       });
   }
-  // ボタンクリックで検索
+  
   searchBtn.addEventListener('click', performSearch);
-  // Enterキーでも検索
+  
   searchInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       performSearch();
@@ -167,7 +162,7 @@
   let startMarker, endMarker, routeLine;
   const locateBtn = document.getElementById('locate-btn');
 
-  // ... 以降の locateBtn, resetRoute, map.on('click'), fetchRoute 関数は変更なし ...
+  
   locateBtn.addEventListener('click', function() {
     navigator.geolocation.getCurrentPosition(
       function(position) {
