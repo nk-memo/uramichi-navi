@@ -48,15 +48,20 @@
   }
 
   map.on('click', function(e) {
-    if (!startLatLng) {
+
+    if (routeLine) {
       resetRoute();
+      return; 
+    }
+
+    if (!startLatLng) {
       startLatLng = e.latlng;
       startMarker = L.marker(startLatLng).addTo(map);
       instructions.textContent = "到着地点をクリックしてください";
     } else {
       if (endMarker) map.removeLayer(endMarker);
       endMarker = L.marker(e.latlng).addTo(map);
-      instructions.textContent = "究極の裏道を検索中...";
+      instructions.textContent = "なるべく裏道を検索中...";
       fetchRoute(startLatLng, e.latlng);
     }
   });
@@ -64,9 +69,7 @@
   function fetchRoute(start, end) {
     const url = '/api/route';
 
-    if (routeLine) {
-      map.removeLayer(routeLine);
-    }
+    // この関数の先頭にあった古いルート削除処理は不要になったので削除
 
     fetch(url, {
       method: 'POST',
@@ -109,7 +112,10 @@
     });
   }
 
-  map.on('dblclick', resetRoute);
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // ★ ダブルクリックでのリセットは不要になったので削除 ★
+  // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  // map.on('dblclick', resetRoute);
 </script>
 
 </body>
